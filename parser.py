@@ -10,8 +10,8 @@ def line(string, separator, dic):
     value = ''
     while(i < len(string)):
         value += string[i]
-        if(string[i] == ' ' and value != '' or i == len(string)-1):
-            values.append(value)
+        if((string[i] == ' ' or i == len(string)-1) and value != ''):
+            values.append(value.strip(' '))
             value = ''
         i += 1
     dic[key] = values

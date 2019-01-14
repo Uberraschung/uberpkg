@@ -53,12 +53,12 @@ def install(pkgname):
         data = response.read()
         split = url.split('/')
         filename = split[len(split)-1]
-        with open('pkgs/'+filename, 'wb') as f:
+        with open('/tmp/'+filename, 'wb') as f:
             f.write(data)
 
 
 def main(args):
-    valid = ['update', 'install']
+    valid = ['update', 'install', 'search']
     if len(args) < 1 or args[0] not in valid:
         usage()
     if args[0] == 'update':
@@ -66,7 +66,17 @@ def main(args):
     elif args[0] == 'install':
         install(args[1])
     elif args[0] == 'search':
-        search(args[1])
+        dic = search(args[1])
+        desc = ' '.join(dic['SLACKBUILD SHORT DESCRIPTION'])
+        req = ' '.join(dic['SLACKBUILD REQUIRES'])
+        files = ' '.join(dic['SLACKBUILD FILES'])
+        print("""
+        NAME: %s
+        VERSION: %s
+        REQUIRES: %s
+        SHORT DESCRIPTION: %s
+        FILES: %s
+        """ % (dic['SLACKBUILD NAME'][0], dic['SLACKBUILD VERSION'][0], req, desc, files))
     return 0
 
 if __name__ == '__main__':
