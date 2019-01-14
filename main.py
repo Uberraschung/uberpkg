@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 import tarfile
 import os
 from tinydb import TinyDB, Query
+from random import getrandbits
 
 def usage():
     print('Invalid command. Usage:', file=sys.stderr)
@@ -51,7 +52,7 @@ def search(pkgname, db):
 
 def install(pkgname, db):
     dic = search(pkgname, db)
-    for url in dic['SLACKBUILD DOWNLOAD']:
+    for url in dic[0]['SLACKBUILD DOWNLOAD']:
         response = urllib.request.urlopen(url)
         print('Downloading from %s' % url)
         data = response.read()
@@ -60,10 +61,12 @@ def install(pkgname, db):
         path = '/tmp/'+filename
         with open(path, 'wb') as f:
             f.write(data)
-        #tf = tarfile.open(path)
-        #if not os.path.exists(path):
-        #    os.makedirs(directory)
-        #tf.extractall('')
+        rhash = getrandbits(128)
+        hash = "%032x" % rhash
+        tf = tarfile.open(path)
+        if not os.path.exists(path+'-'+hash):
+            os.makedirs(path+'-'+hash)
+        tf.extractall(path+'-'+hash)
 
 
 def main(args):
@@ -72,6 +75,7 @@ def main(args):
     if len(args) < 1 or args[0] not in valid:
         usage()
     if args[0] == 'update':
+        update()
         db_update(db)
     elif args[0] == 'install':
         install(args[1], db)
@@ -81,7 +85,7 @@ def main(args):
             desc = ' '.join(pkg['SLACKBUILD SHORT DESCRIPTION'])
             req = ' '.join(pkg['SLACKBUILD REQUIRES'])
             files = ' '.join(pkg['SLACKBUILD FILES'])
-            print("\nNAME: %sVERSION: %s\nREQUIRES: %s\nSHORT DESCRIPTION: %s\nFILES: %s\n" % (pkg['SLACKBUILD NAME'][0], pkg['SLACKBUILD VERSION'][0], req, desc, files))
+            print("\nNAME: %s\nVERSION: %s\nREQUIRES: %s\nSHORT DESCRIPTION: %s\nFILES: %s\n" % (pkg['SLACKBUILD NAME'][0], pkg['SLACKBUILD VERSION'][0], req, desc, files))
     return 0
 
 if __name__ == '__main__':
