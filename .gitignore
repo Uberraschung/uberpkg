@@ -2,3 +2,4 @@ SLACKBUILDS.TXT
 SLACKBUILDS.TXT.bkp
 __pycache__
 pkgs/
+.vscode/

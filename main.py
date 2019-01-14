@@ -4,9 +4,28 @@ from shutil import copyfile
 from parser import line_list
 import urllib.request
 from urllib.parse import urlparse
+import tarfile
+import os
+from tinydb import TinyDB, Query
 
 def usage():
     print('Invalid command. Usage:', file=sys.stderr)
+
+def db_update(db):
+    dic = {}
+    lines = []
+    localfile = open('SLACKBUILDS.TXT', 'rt')
+    line = localfile.readline()
+    while(line != ''):
+        while(line != '\n'):
+            lines.append(line.strip())
+            line = localfile.readline()
+        line_list(lines, ':', dic)
+        db.insert(dic)
+        dic.clear()
+        lines[:] = []
+        line = localfile.readline()
+    localfile.close()
 
 def update():
     ftp = FTP('ftp.slackbuilds.org')
@@ -25,58 +44,44 @@ def update():
     localfile.close()
     ftp.quit()
 
-def search(pkgname):
-    dic = {'SLACKBUILD NAME': ['']}
-    lines = []
-    localfile = open('SLACKBUILDS.TXT', 'rt')
-    line = localfile.readline().strip()
-    while(True):
-        while(line != ""):
-            lines.append(line)
-            line = localfile.readline().strip()
-        line_list(lines, ':', dic)
-        if(dic['SLACKBUILD NAME'][0] != pkgname):
-            lines[:] = []
-            line = localfile.readline().strip()
-            dic = {'SLACKBUILD NAME': ['']}
-        else:
-            break
-    localfile.close()
-    return dic
+def search(pkgname, db):
+    Pkg = Query()
+    dbs = db.search(Pkg['SLACKBUILD NAME'][0] == pkgname)
+    return dbs
 
-def install(pkgname):
-    dic = search(pkgname)
-    #SLACKBUILD DOWNLOAD
+def install(pkgname, db):
+    dic = search(pkgname, db)
     for url in dic['SLACKBUILD DOWNLOAD']:
         response = urllib.request.urlopen(url)
         print('Downloading from %s' % url)
         data = response.read()
         split = url.split('/')
         filename = split[len(split)-1]
-        with open('/tmp/'+filename, 'wb') as f:
+        path = '/tmp/'+filename
+        with open(path, 'wb') as f:
             f.write(data)
+        #tf = tarfile.open(path)
+        #if not os.path.exists(path):
+        #    os.makedirs(directory)
+        #tf.extractall('')
 
 
 def main(args):
+    db = TinyDB('db.json')
     valid = ['update', 'install', 'search']
     if len(args) < 1 or args[0] not in valid:
         usage()
     if args[0] == 'update':
-        update()
+        db_update(db)
     elif args[0] == 'install':
-        install(args[1])
+        install(args[1], db)
     elif args[0] == 'search':
-        dic = search(args[1])
-        desc = ' '.join(dic['SLACKBUILD SHORT DESCRIPTION'])
-        req = ' '.join(dic['SLACKBUILD REQUIRES'])
-        files = ' '.join(dic['SLACKBUILD FILES'])
-        print("""
-        NAME: %s
-        VERSION: %s
-        REQUIRES: %s
-        SHORT DESCRIPTION: %s
-        FILES: %s
-        """ % (dic['SLACKBUILD NAME'][0], dic['SLACKBUILD VERSION'][0], req, desc, files))
+        dic = search(args[1], db)
+        for pkg in dic:
+            desc = ' '.join(pkg['SLACKBUILD SHORT DESCRIPTION'])
+            req = ' '.join(pkg['SLACKBUILD REQUIRES'])
+            files = ' '.join(pkg['SLACKBUILD FILES'])
+            print("\nNAME: %sVERSION: %s\nREQUIRES: %s\nSHORT DESCRIPTION: %s\nFILES: %s\n" % (pkg['SLACKBUILD NAME'][0], pkg['SLACKBUILD VERSION'][0], req, desc, files))
     return 0
 
 if __name__ == '__main__':
