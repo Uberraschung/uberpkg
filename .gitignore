@@ -3,3 +3,4 @@ SLACKBUILDS.TXT.bkp
 __pycache__
 pkgs/
 .vscode/
+db.json

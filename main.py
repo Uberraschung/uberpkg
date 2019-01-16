@@ -1,91 +1,35 @@
 import sys
-from ftplib import FTP
-from shutil import copyfile
-from parser import line_list
-import urllib.request
-from urllib.parse import urlparse
-import tarfile
-import os
-from tinydb import TinyDB, Query
-from random import getrandbits
+from pymongo import MongoClient
+from package import update, db_update, install, search
 
 def usage():
     print('Invalid command. Usage:', file=sys.stderr)
+    print('main.py install|update|search <package> ; Operates under a package', file=sys.stderr)
+    print('main.py updatedb ; Updates the local database with slackbuilds\' data', file=sys.stderr)
 
-def db_update(db):
-    dic = {}
-    lines = []
-    localfile = open('SLACKBUILDS.TXT', 'rt')
-    line = localfile.readline()
-    while(line != ''):
-        while(line != '\n'):
-            lines.append(line.strip())
-            line = localfile.readline()
-        line_list(lines, ':', dic)
-        db.insert(dic)
-        dic.clear()
-        lines[:] = []
-        line = localfile.readline()
-    localfile.close()
-
-def update():
-    ftp = FTP('ftp.slackbuilds.org')
-    ftp.set_pasv(False)
-    ret = ftp.login()
-    print(ret)
-    if ret != '230 Login successful.':
-        print('Could not open slackbuild\'s FTP: %s' % ret, file=sys.stderr)
-        sys.exit(1)
-    try:
-        copyfile('SLACKBUILDS.TXT', 'SLACKBUILDS.TXT.bkp')
-    except FileNotFoundError:
-        print('SLACKBUILDS.TXT doesn\'t exists yet.', file=sys.stderr)
-    localfile = open('SLACKBUILDS.TXT', 'wb')
-    ftp.retrbinary('RETR pub/slackbuilds/14.2/SLACKBUILDS.TXT', localfile.write)
-    localfile.close()
-    ftp.quit()
-
-def search(pkgname, db):
-    Pkg = Query()
-    dbs = db.search(Pkg['SLACKBUILD NAME'][0] == pkgname)
-    return dbs
-
-def install(pkgname, db):
-    dic = search(pkgname, db)
-    for url in dic[0]['SLACKBUILD DOWNLOAD']:
-        response = urllib.request.urlopen(url)
-        print('Downloading from %s' % url)
-        data = response.read()
-        split = url.split('/')
-        filename = split[len(split)-1]
-        path = '/tmp/'+filename
-        with open(path, 'wb') as f:
-            f.write(data)
-        rhash = getrandbits(128)
-        hash = "%032x" % rhash
-        tf = tarfile.open(path)
-        if not os.path.exists(path+'-'+hash):
-            os.makedirs(path+'-'+hash)
-        tf.extractall(path+'-'+hash)
-
-
-def main(args):
-    db = TinyDB('db.json')
-    valid = ['update', 'install', 'search']
+def parsearg(args, collection):
+    valid = ['update', 'install', 'search', 'updatedb']
     if len(args) < 1 or args[0] not in valid:
         usage()
-    if args[0] == 'update':
+    if args[0] == 'updatedb':
         update()
-        db_update(db)
+        db_update(collection)
     elif args[0] == 'install':
-        install(args[1], db)
+        install(collection, args[1])
     elif args[0] == 'search':
-        dic = search(args[1], db)
+        dic = search(collection, args[1])
         for pkg in dic:
             desc = ' '.join(pkg['SLACKBUILD SHORT DESCRIPTION'])
             req = ' '.join(pkg['SLACKBUILD REQUIRES'])
             files = ' '.join(pkg['SLACKBUILD FILES'])
             print("\nNAME: %s\nVERSION: %s\nREQUIRES: %s\nSHORT DESCRIPTION: %s\nFILES: %s\n" % (pkg['SLACKBUILD NAME'][0], pkg['SLACKBUILD VERSION'][0], req, desc, files))
+
+
+def main(args):
+    client = MongoClient('localhost', 27017)
+    db = client.slackbuilds
+    collection = db.packages
+    parsearg(args, collection)
     return 0
 
 if __name__ == '__main__':
