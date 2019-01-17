@@ -11,6 +11,7 @@ def download_http(url, apath='', fname=None):
     else:
         filename = fname
     path = apath+filename
+    print('Saving to %s' % path)
     with open(path, 'wb') as f:
         f.write(data)
 
