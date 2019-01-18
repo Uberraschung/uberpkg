@@ -2,7 +2,7 @@ from utils import download_http
 from parser import line_list
 from random import getrandbits
 from shutil import copyfile
-from subprocess import run
+from subprocess import Popen, PIPE
 import tarfile
 import os
 
@@ -49,5 +49,6 @@ def install(db, pkgname):
         download_http(src, 'pkgs/src/')
         slackbuild_dir = 'pkgs/slackbuild/'+dic[0]['SLACKBUILD NAME'][0]
         copyfile('pkgs/src/'+os.path.basename(src), slackbuild_dir+'/'+os.path.basename(src))
-        print('Running %s' % dic[0]['SLACKBUILD NAME'][0])
-        run([slackbuild_dir + '/' + dic[0]['SLACKBUILD NAME'][0] + '.SlackBuild'])
+        print('Running %s' % (os.getcwd() + '/' + slackbuild_dir + '/' + dic[0]['SLACKBUILD NAME'][0] + '.SlackBuild'))
+        p = Popen(['./' + dic[0]['SLACKBUILD NAME'][0] + '.SlackBuild'], cwd=os.getcwd() + '/' + slackbuild_dir)
+        output = p.communicate()
