@@ -7,7 +7,7 @@ def usage():
     print('main.py install|update|search <package> ; Operates under a package', file=sys.stderr)
     print('main.py updatedb ; Updates the local database with slackbuilds\' data', file=sys.stderr)
 
-def parsearg(args, collection):
+def parsearg(args, collection): 
     valid = ['update', 'install', 'search', 'updatedb']
     if len(args) < 1 or args[0] not in valid:
         usage()
@@ -18,11 +18,12 @@ def parsearg(args, collection):
         install(collection, args[1])
     elif args[0] == 'search':
         dic = search(collection, args[1])
-        for pkg in dic:
+        for pkg in dic: #bitch this shit ugly
             desc = ' '.join(pkg['SLACKBUILD SHORT DESCRIPTION'])
             req = ' '.join(pkg['SLACKBUILD REQUIRES'])
             files = ' '.join(pkg['SLACKBUILD FILES'])
-            print("\nNAME: %s\nVERSION: %s\nREQUIRES: %s\nSHORT DESCRIPTION: %s\nFILES: %s\n" % (pkg['SLACKBUILD NAME'][0], pkg['SLACKBUILD VERSION'][0], req, desc, files))
+            print("\nNAME: %s\nVERSION: %s\nREQUIRES: %s\nSHORT DESCRIPTION: %s\nFILES: %s\n" % (pkg['SLACKBUILD NAME'][0], pkg['SLACKBUILD VERSION'][0], req, desc, files)) 
+            
 
 
 def main(args):
