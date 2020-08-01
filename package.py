@@ -7,7 +7,7 @@ import tarfile
 import os
 
 def db_update(db):
-    dic = {}
+    dic = {} # <- this line gae as hell
     lines = []
     localfile = open('SLACKBUILDS.TXT', 'rt')
     line = localfile.readline()
